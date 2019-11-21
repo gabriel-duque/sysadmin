@@ -1,0 +1,20 @@
+#!/bin/sh
+
+# git_help: list all repositories on server
+
+printf "* Private:\n"
+
+for priv in private/*
+do
+    priv="${priv#*/}"
+    printf "\t%s\n" "${priv%.git}"
+done
+
+printf "\n* Public:\n"
+
+for pub in public/*
+do
+    pub="${pub#*/}"
+    printf "\t%-20s - %s\n" "${pub%.git}" "$(cat public/${pub}/description)"
+done
+

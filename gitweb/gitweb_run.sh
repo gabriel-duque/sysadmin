@@ -2,4 +2,4 @@
 
 lighttpd -f /etc/lighttpd/lighttpd.conf
 
-/usr/sbin/sshd -D
+/usr/sbin/sshd -p 2200 -D

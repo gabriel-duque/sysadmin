@@ -1,0 +1,17 @@
+#!/bin/sh
+
+set -e
+
+# git_help: create a new public repository
+
+if [ "$#" -ne 1 ]; then
+	printf "%s" "usage: create_public_repo name" >&2
+	exit 1
+fi
+
+REPO_PATH="/srv/git/${1%.git}.git"
+mkdir -p "$REPO_PATH"
+cd "$REPO_PATH"
+git init --bare --shared
+
+printf "${1%.git}.git\n" >> /srv/git/projects.list

@@ -1,0 +1,15 @@
+#!/bin/sh
+
+# git_help: list all available git-shell commands
+
+for i in git-shell-commands/*
+do
+    desc="- $(awk '/git_help: /{for (i=3; i<NF; i++) printf $i " "; \
+        print $NF; exit }' $i)"
+    if [ "${#desc}" -gt 2 ]
+    then
+        printf '%-32s%s\n' "${i##*/}" "$desc"
+    else
+        printf '%s\n' "${i##*/}"
+    fi
+done

@@ -1,0 +1,15 @@
+==========================================================
+| sysadmin: my personal system administration repository |
+==========================================================
+
+Introdution:
+------------
+
+In this repository you will find the configuration files for the system
+administration of all of my personal services and machines.
+
+All my machines are named after Pokemons.
+
+Here is a list of the services which are available in this repository:
+    * dragonite: NixOS configuration for my personal laptop
+    * lapras:    git server with gitweb interface backed by lighttpd

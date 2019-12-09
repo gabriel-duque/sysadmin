@@ -1,41 +1,149 @@
+#!/bin/sh
+
+# This strictly POSIX compliant script is used to install NixOS on my laptop
+
+# ANSI color codes for logging functions
+red='\e[31m'
+grn='\e[32m'
+yel='\e[33m'
+rst='\e[0m'
+
+# Necessary binaries to run this script
+deps="parted cryptsetup pvcreate lvcreate mkfs.vfat mkfs.ext4 mkswap mount "
+deps="${deps} mkdir swapon nix-generate-config nixos-install"
+
+# The disk on which we wish to install NixOS
+disk=
+# Our hostname
+hostname=
+# The volume group name
+vg_name=
+# The open LUKS device
+crypt_dm=
+# EFI system partition and its size
+esp=
+esp_size=
+# LUKS formatted partition
+crypt_part=
+
+# Simple logging function
+log() {
+    printf "[${grn}*${rst}] $*\n"
+}
+
+# Warn but don't exit
+warn() {
+    printf "[${yel}*${rst}] $*\n"
+}
+
+# Print error and exit
+die() {
+    printf "[${red}*${rst}] $*\n"
+    exit 1
+}
+
+# Print usage
+print_usage() {
+    printf "$(basename $0): -d [DISK] -h [HOSTNAME] -v [VGNAME] -c [CRYPTDM]\n"
+}
+
+# This is a sanity check that is used to check we have everythong we need to
+# install our system before messing with disks and everything else
+check_env() {
+    for bin in $deps
+    do
+        if ! command -v "$bin" >/dev/null
+            die "Could not find $bin"
+        fi
+    done
+}
+
+# Parse script arguments
+parse_args() {
+}
+
 # Partition disk
-parted --script -- /dev/sda mklabel gpt
+partition_disk() {
+    parted --script -- "${disk}" mklabel gpt
 
-parted --script -- /dev/sda mkpart primary fat32 0% 1GiB
-parted --script -- /dev/sda set 1 boot on
-parted --script -- /dev/sda name 1 ESP
+    parted -a opt --script -- "${disk}" mkpart primary fat32 0% "${esp_size}"
+    parted -a opt --script -- "${disk}" name 1 ESP
+    parted -a opt --script -- "${disk}" set 1 boot on
 
-parted --script -- /dev/sda mkpart primary 1GiB 100%
-parted --script -- /dev/sda name 2 dragonite
+    parted -a opt --script -- "${disk}" mkpart primary "${esp_size}" 100%
+    parted -a opt --script -- "${disk}" name 2 "${hostname}"
+}
 
-# Setup encryption (LUKS1 cause GRUB can't handle LUKS2)
-cryptsetup luksFormat --type luks1 -c aes-xts-plain64 -s 256 -h sha512 /dev/sda2
-cryptsetup luksOpen /dev/sda2 cryptdragonite
+# Setup encryption (LUKS1 cause GRUB cryptoboot can't handle LUKS2)
+make_filesystems() {
+    cryptsetup luksFormat --type luks1 -c aes-xts-plain64 -s 256 -h sha512 \
+        "${esp}"
 
-# Setup LVM
-pvcreate /dev/mapper/cryptdragonite
+    cryptsetup luksOpen "${esp}" "${crypt_dm}"
 
-vgcreate dragonite /dev/mapper/cryptdragonite
+    # Setup LVM
+    pvcreate "/dev/mapper/${crypt_dm}"
 
-lvcreate --size 16G --name swap dragonite
-lvcreate --size 256G --name root dragonite
-lvcreate --extents '95%FREE' --name home dragonite
+    vgcreate "${vg_name}" "/dev/mapper/${crypt_dm}"
 
-# Create filesystems
-mkfs.vfat -F32 -n ESP /dev/sda1
-mkswap -L swap /dev/dragonite/swap
-mkfs.ext4 -L root /dev/dragonite/root
-mkfs.ext4 -m 0 -L home /dev/dragonite/home
+    lvcreate --size 16G --name swap "${vg_name}"
+    lvcreate --size 256G --name root "${vg_name}"
+    lvcreate --extents '95%FREE' --name home "${vg_name}"
+
+    # Create filesystems
+    mkfs.vfat -F32 -n ESP "${esp}"
+    mkfs.ext4 -L root "/dev/${vg_name}/root"
+    mkfs.ext4 -m 0 -L home "/dev/${vg_name}/home"
+    mkswap -L swap "/dev/${vg_name}/swap"
+}
 
 # Mount shit and swapon
-mount /dev/dragonite/root /mnt
-mkdir -p /mnt/{home,boot/efi}
-mount /dev/sda1 /mnt/boot/efi/
-mount /dev/dragonite/home /mnt/home/
-swapon /dev/dragonite/swap
+mount_filesystems() {
+    mount "/dev/${vg_name}/root" /mnt
+    mkdir -p /mnt/{home,boot/efi}
+    mount "${esp}" /mnt/boot/efi
+    mount "/dev/${vg_name}/home" /mnt/home
+    swapon "/dev/${vg_name}/swap"
+}
 
-# Create default NixOS config
-nix-generate-config --root /mnt
-# Edit shit so it looks good
-nixos-install
-reboot
+# Generate out NixOS config
+generate_nix_config() {
+    # Create default NixOS config
+    nix-generate-config --root /mnt
+
+    # XXX: edit the deafult config
+}
+
+main() {
+    check_env
+    log "Passed environment check"
+
+    parse_args $*
+    log "Parsed arguments"
+
+    partition_disk
+    log "Partitioned disk"
+
+    make_filesystems
+    log "Made filesystems"
+
+    mount_filesystems
+    log "Mounted filesystems"
+
+    generate_nix_config
+    log "Generated NixOS config"
+
+    printf "%s\n" "Launching the actual installation"
+
+    nixos-install
+    log "Succesfully installed NixOS"
+
+    printf "%s\n" "Would you like to unmount all partitions and reboot? (y/n)"
+    read ans
+
+    if [ "${ans:0:1}" == "y" -o "${ans:0:1}" == "Y" ]
+    then
+        cleanup
+        reboot
+    fi
+}

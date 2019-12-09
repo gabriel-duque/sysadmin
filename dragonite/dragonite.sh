@@ -2,6 +2,9 @@
 
 # This strictly POSIX compliant script is used to install NixOS on my laptop
 
+# We should not allow errors to occur
+set -e
+
 # ANSI color codes for logging functions
 red='\e[31m'
 grn='\e[32m'
@@ -51,6 +54,9 @@ print_usage() {
 # This is a sanity check that is used to check we have everythong we need to
 # install our system before messing with disks and everything else
 check_env() {
+    # XXX: check network connection
+    # XXX: check existence of configuraiton.nix in current directory
+
     for bin in $deps
     do
         if ! command -v "$bin" >/dev/null
@@ -198,9 +204,18 @@ mount_filesystems() {
 # Generate out NixOS config
 generate_nix_config() {
     # Create default NixOS config
-    nix-generate-config --root /mnt
+    nixos-generate-config --root /mnt
 
-    # XXX: edit the default config
+    sed -i.orig -e \
+        "s/crypt_part_uuid/$(blkid ${crypt_part} -o value -s UUID)/" \
+        configuration.nix
+
+    mv configuration.nix /mnt/etc/nixos/
+}
+
+# Cleanup
+cleanup() {
+    echo cleaning up
 }
 
 main() {
@@ -212,7 +227,7 @@ main() {
 
     dump_args
 
-    printf "Is this okay for you? (y/n)\n"
+    printf "Is this okay for you? (y/n) "
     read ans
     if ! [ "${ans:0:1}" == "y" -o "${ans:0:1}" == "Y" ]
     then
@@ -236,7 +251,7 @@ main() {
 
     until nixos-install
     do
-        printf "Something went wrong with nixos-install. Try again? (y/n)\n"
+        printf "Something went wrong with nixos-install. Try again? (y/n) "
         read ans
         if ! [ "${ans:0:1}" == "y" -o "${ans:0:1}" == "Y" ]
         then
@@ -247,7 +262,7 @@ main() {
     done
     log "Succesfully installed NixOS"
 
-    printf "Would you like to unmount all partitions and reboot? (y/n)"
+    printf "Would you like to unmount all partitions and reboot? (y/n) "
     read ans
 
     if [ "${ans:0:1}" == "y" -o "${ans:0:1}" == "Y" ]

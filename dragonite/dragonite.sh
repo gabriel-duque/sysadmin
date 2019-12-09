@@ -10,7 +10,7 @@ rst='\e[0m'
 
 # Necessary binaries to run this script
 deps="parted cryptsetup pvcreate lvcreate mkfs.vfat mkfs.ext4 mkswap mount "
-deps="${deps} mkdir swapon nix-generate-config nixos-install"
+deps="${deps} mkdir swapon nixos-generate-config nixos-install"
 
 # The disk on which we wish to install NixOS
 disk=
@@ -28,24 +28,24 @@ crypt_part=
 
 # Simple logging function
 log() {
-    printf "[${grn}*${rst}] $*\n"
+    printf -- "[${grn}*${rst}] $*\n"
 }
 
 # Warn but don't exit
 warn() {
-    printf "[${yel}*${rst}] $*\n"
+    printf -- "[${yel}*${rst}] $*\n"
 }
 
 # Print error and exit
 die() {
-    printf "[${red}*${rst}] $*\n"
+    printf -- "[${red}*${rst}] $*\n"
     exit 1
 }
 
 # Print usage
 print_usage() {
-    printf "$(basename $0): -d [DISK] -H [HOSTNAME] -v [VGNAME] -c [CRYPTDM] "
-    printf "-s [ESP_SIZE]\n"
+    printf -- "$(basename $0): -d [DISK] -H [HOSTNAME] -v [VGNAME] "
+    printf -- "-c [CRYPTDM] -s [ESP_SIZE]\n"
 }
 
 # This is a sanity check that is used to check we have everythong we need to
@@ -115,7 +115,7 @@ parse_args() {
                 fi
                 ;;
             -?*)
-                warn "Unknown argument $1"
+                warn "Unknown argument: $1"
                 ;;
             *)
                 break
@@ -125,17 +125,29 @@ parse_args() {
     done
     if [ -n "$1" ]
     then
-        warn "Unexpected parameters $*"
+        warn "Unexpected parameters: $*"
     fi
 
-    # Propagate the fact tha variables were set
+    # Propagate the fact that variables were set
     disk="${disk:-/dev/sda}"
-    hostname="${hostname:-dragonite}"
-    vg_name="${vg_name:-${hostname}}"
-    crypt_dm="${crypt_dm:-crypt${hostname}}"
     esp="${disk}1"
     esp_size="${esp_size:-1GiB}"
     crypt_part="${disk}2"
+    hostname="${hostname:-dragonite}"
+    crypt_dm="${crypt_dm:-crypt${hostname}}"
+    vg_name="${vg_name:-${hostname}}"
+}
+
+# Dump configuration to prompt the user for approval before doing anything
+dump_args() {
+    printf "Configuration:\n"
+    printf "\t%-42s ${disk}\n" "Disk:"
+    printf "\t%-42s ${esp}\n" "EFI system partition:"
+    printf "\t%-42s ${esp_size}\n" "Size of the EFI system partition:"
+    printf "\t%-42s ${crypt_part}\n" "LUKS encrypted device:"
+    printf "\t%-42s ${crypt_dm}\n" "Mapping name for LUKS device:"
+    printf "\t%-42s ${vg_name}\n" "Volume group name:"
+    printf "\t%-42s ${hostname}\n" "Hostname:"
 }
 
 # Partition disk
@@ -152,25 +164,26 @@ partition_disk() {
 
 # Setup encryption (LUKS1 cause GRUB cryptoboot can't handle LUKS2)
 make_filesystems() {
-    cryptsetup luksFormat --type luks1 -c aes-xts-plain64 -s 256 -h sha512 \
-        "${esp}"
 
-    cryptsetup luksOpen "${esp}" "${crypt_dm}"
+    cryptsetup -q -y luksFormat --type luks1 -c aes-xts-plain64 -s 256 \
+        -h sha512 "${crypt_part}"
+
+    cryptsetup -q luksOpen "${crypt_part}" "${crypt_dm}"
 
     # Setup LVM
-    pvcreate "/dev/mapper/${crypt_dm}"
+    pvcreate -f -q "/dev/mapper/${crypt_dm}" >/dev/null
 
-    vgcreate "${vg_name}" "/dev/mapper/${crypt_dm}"
+    vgcreate -f -q "${vg_name}" "/dev/mapper/${crypt_dm}" >/dev/null
 
-    lvcreate --size 16G --name swap "${vg_name}"
-    lvcreate --size 256G --name root "${vg_name}"
-    lvcreate --extents '95%FREE' --name home "${vg_name}"
+    lvcreate -q --size 16G --name swap "${vg_name}" >/dev/null
+    lvcreate -q --size 256G --name root "${vg_name}" >/dev/null
+    lvcreate -q --extents '95%FREE' --name home "${vg_name}" >/dev/null
 
     # Create filesystems
-    mkfs.vfat -F32 -n ESP "${esp}"
-    mkfs.ext4 -L root "/dev/${vg_name}/root"
-    mkfs.ext4 -m 0 -L home "/dev/${vg_name}/home"
-    mkswap -L swap "/dev/${vg_name}/swap"
+    mkfs.vfat -F32 -n ESP "${esp}" >/dev/null
+    mkfs.ext4 -q -L root "/dev/${vg_name}/root"
+    mkfs.ext4 -q -m 0 -L home "/dev/${vg_name}/home"
+    mkswap -L swap "/dev/${vg_name}/swap" >/dev/null
 }
 
 # Mount shit and swapon
@@ -197,6 +210,16 @@ main() {
     parse_args $*
     log "Parsed arguments"
 
+    dump_args
+
+    printf "Is this okay for you? (y/n)\n"
+    read ans
+    if ! [ "${ans:0:1}" == "y" -o "${ans:0:1}" == "Y" ]
+    then
+        exit 1
+    fi
+    unset ans
+
     partition_disk
     log "Partitioned disk"
 
@@ -209,17 +232,18 @@ main() {
     generate_nix_config
     log "Generated NixOS config"
 
-    printf "%s\n" "Launching the actual installation"
+    printf "Launching the actual installation\n"
 
     until nixos-install
     do
         printf "Something went wrong with nixos-install. Try again? (y/n)\n"
         read ans
-        if [ "${ans:0:1}" == "n" -o "${ans:0:1}" == "N" ]
+        if ! [ "${ans:0:1}" == "y" -o "${ans:0:1}" == "Y" ]
         then
             cleanup
             exit 1
         fi
+        unset ans
     done
     log "Succesfully installed NixOS"
 
@@ -231,4 +255,5 @@ main() {
         cleanup
         reboot
     fi
+    unset ans
 }

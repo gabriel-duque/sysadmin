@@ -44,7 +44,8 @@ die() {
 
 # Print usage
 print_usage() {
-    printf "$(basename $0): -d [DISK] -h [HOSTNAME] -v [VGNAME] -c [CRYPTDM]\n"
+    printf "$(basename $0): -d [DISK] -H [HOSTNAME] -v [VGNAME] -c [CRYPTDM] "
+    printf "-s [ESP_SIZE]\n"
 }
 
 # This is a sanity check that is used to check we have everythong we need to
@@ -53,6 +54,7 @@ check_env() {
     for bin in $deps
     do
         if ! command -v "$bin" >/dev/null
+        then
             die "Could not find $bin"
         fi
     done
@@ -60,6 +62,80 @@ check_env() {
 
 # Parse script arguments
 parse_args() {
+    while :
+    do
+        case $1 in
+            -h|-\?)
+                print_usage
+                exit 0
+                ;;
+            -d)
+                if [ -n "$2" ]
+                then
+                    disk="$2"
+                    shift
+                else
+                    die "-d requires an argument"
+                fi
+                ;;
+            -H)
+                if [ -n "$2" ]
+                then
+                    hostname="$2"
+                    shift
+                else
+                    die "-H requires an argument"
+                fi
+                ;;
+            -v)
+                if [ -n "$2" ]
+                then
+                    vg_name="$2"
+                    shift
+                else
+                    die "-v requires an argument"
+                fi
+                ;;
+            -c)
+                if [ -n "$2" ]
+                then
+                    crypt_dm="$2"
+                    shift
+                else
+                    die "-c requires an argument"
+                fi
+                ;;
+            -s)
+                if [ -n "$2" ]
+                then
+                    esp_size="$2"
+                    shift
+                else
+                    die "-s requires an argument"
+                fi
+                ;;
+            -?*)
+                warn "Unknown argument $1"
+                ;;
+            *)
+                break
+                ;;
+        esac
+        shift
+    done
+    if [ -n "$1" ]
+    then
+        warn "Unexpected parameters $*"
+    fi
+
+    # Propagate the fact tha variables were set
+    disk="${disk:-/dev/sda}"
+    hostname="${hostname:-dragonite}"
+    vg_name="${vg_name:-${hostname}}"
+    crypt_dm="${crypt_dm:-crypt${hostname}}"
+    esp="${disk}1"
+    esp_size="${esp_size:-1GiB}"
+    crypt_part="${disk}2"
 }
 
 # Partition disk
@@ -111,7 +187,7 @@ generate_nix_config() {
     # Create default NixOS config
     nix-generate-config --root /mnt
 
-    # XXX: edit the deafult config
+    # XXX: edit the default config
 }
 
 main() {
@@ -135,10 +211,19 @@ main() {
 
     printf "%s\n" "Launching the actual installation"
 
-    nixos-install
+    until nixos-install
+    do
+        printf "Something went wrong with nixos-install. Try again? (y/n)\n"
+        read ans
+        if [ "${ans:0:1}" == "n" -o "${ans:0:1}" == "N" ]
+        then
+            cleanup
+            exit 1
+        fi
+    done
     log "Succesfully installed NixOS"
 
-    printf "%s\n" "Would you like to unmount all partitions and reboot? (y/n)"
+    printf "Would you like to unmount all partitions and reboot? (y/n)"
     read ans
 
     if [ "${ans:0:1}" == "y" -o "${ans:0:1}" == "Y" ]

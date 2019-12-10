@@ -17,7 +17,6 @@ RUN apk add --no-cache git        \
 
 COPY cgitrc /etc/cgitrc
 COPY cgit.conf /etc/lighttpd/cgit.conf
-COPY git.zuh0.com.pem /etc/git.zuh0.com.pem
 COPY gengar.sh gengar.sh
 
 COPY git-shell-commands "/srv/git/git-shell-commands"

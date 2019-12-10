@@ -12,4 +12,4 @@ All my machines are named after Pokemons.
 
 Here is a list of the services which are available in this repository:
     * dragonite: NixOS configuration for my personal laptop
-    * lapras:    git server with gitweb interface backed by lighttpd
+    * gengar:    git server with a cgit interface backed by lighttpd

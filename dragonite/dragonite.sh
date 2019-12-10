@@ -13,7 +13,8 @@ rst='\e[0m'
 
 # Necessary binaries to run this script
 deps="nc parted cryptsetup pvcreate lvcreate mkfs.vfat mkfs.ext4 mkswap mount "
-deps="${deps} mkdir swapon nixos-generate-config nixos-install"
+deps="${deps} mkdir swapon nixos-generate-config nixos-install umount swapoff "
+deps="${deps} vgchange"
 
 # The disk on which we wish to install NixOS
 disk=
@@ -222,7 +223,15 @@ generate_nix_config() {
 
 # Cleanup
 cleanup() {
-    echo cleaning up
+    # Unmount everything and swapoff
+    umount -f -R /mnt
+    swapoff "/dev/${vg_name}/swap"
+
+    # Close logical volumes
+    vgchange -q --available n >/dev/null
+
+    # Close LUKS container
+    cryptsetup luksClose "${crypt_dm}"
 }
 
 main() {
@@ -263,6 +272,7 @@ main() {
         if ! [ "${ans:0:1}" == "y" -o "${ans:0:1}" == "Y" ]
         then
             cleanup
+            log "Cleaned up before leaving"
             exit 1
         fi
         unset ans
@@ -275,7 +285,10 @@ main() {
     if [ "${ans:0:1}" == "y" -o "${ans:0:1}" == "Y" ]
     then
         cleanup
+        log "Cleaned up. Rebooting in 5 seconds."
+        sleep 5
         reboot
     fi
     unset ans
+    log "Eveything is done. Don't forget to cleanup!"
 }

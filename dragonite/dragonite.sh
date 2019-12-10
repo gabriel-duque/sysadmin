@@ -12,7 +12,7 @@ yel='\e[33m'
 rst='\e[0m'
 
 # Necessary binaries to run this script
-deps="parted cryptsetup pvcreate lvcreate mkfs.vfat mkfs.ext4 mkswap mount "
+deps="nc parted cryptsetup pvcreate lvcreate mkfs.vfat mkfs.ext4 mkswap mount "
 deps="${deps} mkdir swapon nixos-generate-config nixos-install"
 
 # The disk on which we wish to install NixOS
@@ -54,9 +54,6 @@ print_usage() {
 # This is a sanity check that is used to check we have everythong we need to
 # install our system before messing with disks and everything else
 check_env() {
-    # XXX: check network connection
-    # XXX: check existence of configuraiton.nix in current directory
-
     for bin in $deps
     do
         if ! command -v "$bin" >/dev/null
@@ -64,6 +61,16 @@ check_env() {
             die "Could not find $bin"
         fi
     done
+
+    if ! nc -z nixos.org 80
+    then
+        die "Failed to connect to nixos.org. Are you connected to a network?"
+    fi
+
+    if ! [ -f "$(basename $0)/configuration.nix" ]
+    then
+        die "No configuration.nix file was found"
+    fi
 }
 
 # Parse script arguments

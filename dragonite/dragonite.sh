@@ -215,9 +215,9 @@ generate_nix_config() {
 
     sed -i.orig -e \
         "s/crypt_part_uuid/$(blkid ${crypt_part} -o value -s UUID)/" \
-        configuration.nix
+        "$(basename $0)/configuration.nix"
 
-    mv configuration.nix /mnt/etc/nixos/
+    mv  "$(basename $0)/configuration.nix" /mnt/etc/nixos/configuration.nix
 }
 
 # Cleanup

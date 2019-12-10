@@ -1,0 +1,24 @@
+# Set logo and style sheet
+css=/cgit/cgit.css
+logo=/cgit/cgit.png
+
+# Allow http clone
+enable-http-clone=1
+
+# To fix some broken links
+virtual-root=/
+
+# The list of public repositories
+project-list=/srv/git/projects.list
+
+# Set directory to scan for repositories to show
+scan-path=/srv/git
+
+# Enable some expensive features
+enable-commit-graph=1
+
+# Make snapshots of eveything
+snapshots=all
+
+# Remove .git suffix
+remove-suffix=1

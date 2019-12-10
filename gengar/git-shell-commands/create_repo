@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 # git_help: create a new private repository
 
 if [ "$#" -ne 1 ]; then

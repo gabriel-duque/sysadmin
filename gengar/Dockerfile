@@ -3,9 +3,8 @@ FROM alpine
 
 RUN apk add --no-cache git        \
                        lighttpd   \
-                       perl-cgi   \
+                       cgit       \
                        openssh    \
-                       git-gitweb \
     && ssh-keygen -A \
     && adduser -D -h /srv/git -s /usr/bin/git-shell git \
     && echo "git:$(head -c 512 /dev/urandom | sha512sum)" | chpasswd \
@@ -13,15 +12,18 @@ RUN apk add --no-cache git        \
     && chmod 700 /srv/git/.ssh \
     && touch /srv/git/.ssh/authorized_keys \
     && chmod 600 /srv/git/.ssh/authorized_keys \
-    && chown -R 'git:git' /srv/git/.ssh
+    && chown -R 'git:git' /srv/git/.ssh \
+    && echo 'include "cgit.conf"' >> /etc/lighttpd/lighttpd.conf
 
-COPY gitweb.conf /etc/gitweb.conf
-COPY lighttpd.conf /etc/lighttpd/lighttpd.conf
-COPY gitweb_run.sh gitweb_run.sh
+COPY cgitrc /etc/cgitrc
+COPY cgit.conf /etc/lighttpd/cgit.conf
+COPY git.zuh0.com.pem /etc/git.zuh0.com.pem
+COPY gengar.sh gengar.sh
 
 COPY git-shell-commands "/srv/git/git-shell-commands"
 
 EXPOSE 8000/tcp
+EXPOSE 4443/tcp
 EXPOSE 2200/tcp
 
-CMD ["sh", "gitweb_run.sh"]
+CMD ["sh", "gengar.sh"]

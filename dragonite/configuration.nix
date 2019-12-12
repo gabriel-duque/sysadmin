@@ -23,7 +23,7 @@
 
   boot.initrd.luks.devices = [
     {
-      name = "root";
+      name = "crypt_dm_name";
       device = "/dev/disk/by-uuid/crypt_part_uuid";
       preLVM = true;
     }

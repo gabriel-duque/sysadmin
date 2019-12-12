@@ -68,7 +68,7 @@ check_env() {
         die "Failed to connect to nixos.org. Are you connected to a network?"
     fi
 
-    if ! [ -f "$(basename $0)/configuration.nix" ]
+    if ! [ -f "$(dirname $0)/configuration.nix" ]
     then
         die "No configuration.nix file was found"
     fi
@@ -179,6 +179,7 @@ partition_disk() {
 # Setup encryption (LUKS1 cause GRUB cryptoboot can't handle LUKS2)
 make_filesystems() {
 
+    # XXX: do until t avoid passphrase failing and exitting with set -e
     cryptsetup -q -y luksFormat --type luks1 -c aes-xts-plain64 -s 256 \
         -h sha512 "${crypt_part}"
 
@@ -214,11 +215,12 @@ generate_nix_config() {
     # Create default NixOS config
     nixos-generate-config --root /mnt
 
-    sed -i.orig -e \
-        "s/crypt_part_uuid/$(blkid ${crypt_part} -o value -s UUID)/" \
-        "$(basename $0)/configuration.nix"
+    sed -i.orig \
+        -e "s/crypt_dm_name/${crypt_dm}/" \
+        -e "s/crypt_part_uuid/$(blkid ${crypt_part} -o value -s UUID)/" \
+        "$(dirname $0)/configuration.nix"
 
-    mv  "$(basename $0)/configuration.nix" /mnt/etc/nixos/configuration.nix
+    mv  "$(dirname $0)/configuration.nix" /mnt/etc/nixos/configuration.nix
 }
 
 # Cleanup
@@ -292,3 +294,5 @@ main() {
     unset ans
     log "Eveything is done. Don't forget to cleanup!"
 }
+
+main

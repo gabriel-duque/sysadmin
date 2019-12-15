@@ -1,5 +1,5 @@
-# Dockerfile for git.zuh0.com
-FROM alpine
+# Dockerfile for gengar (git.zuh0.com)
+FROM alpine:latest
 
 RUN apk add --no-cache git        \
                        lighttpd   \

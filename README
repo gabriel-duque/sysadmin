@@ -12,5 +12,6 @@ All my machines are named after Pokemons.
 
 Here is a list of the services which are available in this repository:
     * dragonite: NixOS configuration for my personal laptop
+    * ditto:     NGINX proxy to handle connections with backend containers
     * gengar:    git server with a cgit interface backed by lighttpd
     * lapras:    personal file server using the transfer.sh Docker container

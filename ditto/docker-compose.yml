@@ -1,0 +1,33 @@
+version: '3'
+
+services:
+
+  ditto:
+    image: jwilder/nginx-proxy:alpine
+    container_name: ditto
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - /etc/sysadmin/certs:/etc/nginx/certs:ro
+
+  gengar:
+    image: zuh0/gengar
+    container_name: gengar
+    volumes:
+      - /etc/sysadmin/certs:/certs:ro
+    environment:
+      - VIRTUAL_HOST=git.zuh0.com
+      - VIRTUAL_PROTO=https
+      - VIRTUAL_PORT=443
+
+  lapras:
+    image: zuh0/lapras
+    container_name: lapras
+    volumes:
+      - /etc/sysadmin/certs:/certs:ro
+    environment:
+      - VIRTUAL_HOST=files.zuh0.com
+      - VIRTUAL_PROTO=https
+      - VIRTUAL_PORT=443

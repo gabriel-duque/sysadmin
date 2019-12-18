@@ -5,11 +5,11 @@ services:
 
     # This is our Traefik reverse-proxy
     ditto:
-        image: traefik
+        image: traefik:latest
         container_name: ditto
         command:
             # Dashboard stuff
-            - "--api.insecure=true"
+            - "--api.dashboard=true"
 
             # Enable Docker discovery
             - "--providers.docker=true"
@@ -52,16 +52,23 @@ services:
             # Create a middle ware to redirect http -> https
             - "traefik.http.middlewares.http2https.redirectscheme.scheme=https"
 
-            ## Setup http router which is redirected to https
-            #- "traefik.http.routers.ditto_web.rule=Host(`traefik.zuh0.com`)"
-            #- "traefik.http.routers.ditto_web.entrypoints=web"
-            #- "traefik.http.routers.ditto_web.middlewares=http2https"
+            # Authentication middleware for ditto
+            - "traefik.http.middlewares.ditto-auth.basicauth.users=${TRAEFIK_USER?please set TRAEFIK_USER}:${TRAEFIK_PASS?please set TRAEFIK_PASS}"
 
-            ## Setup the actual https router and it's certresolver
-            #- "traefik.http.routers.ditto.rule=Host(`traefik.zuh0.com`)"
-            #- "traefik.http.routers.ditto.entrypoints=websecure"
-            #- "traefik.http.routers.ditto.tls=true"
-            #- "traefik.http.routers.ditto.tls.certresolver=mytlschallenge"
+            # Setup http router which is redirected to https
+            - "traefik.http.routers.ditto_web.rule=Host(`traefik.zuh0.com`)"
+            - "traefik.http.routers.ditto_web.entryPoints=web"
+            - "traefik.http.routers.ditto_web.middlewares=http2https"
+
+            # Setup the actual https router and it's certresolver
+            - "traefik.http.routers.ditto.rule=Host(`traefik.zuh0.com`)"
+            - "traefik.http.routers.ditto.entrypoints=websecure"
+            - "traefik.http.routers.ditto.tls=true"
+            - "traefik.http.routers.ditto.tls.certresolver=mytlschallenge"
+
+            # Set the service to api internal	
+            - "traefik.http.routers.ditto.service=api@internal"
+            - "traefik.http.routers.ditto.middlewares=ditto-auth"
 
     # This is our git server
     gengar:
@@ -100,6 +107,9 @@ services:
             # Enable Traefik for this service
             - "traefik.enable=true"
 
+            # Authentication middleware for lapras
+            - "traefik.http.middlewares.lapras-auth.basicauth.users=${LAPRAS_USER?please set LAPRAS_USER}:${LAPRAS_PASS?please set LAPRAS_PASS}"
+
             # Setup http router which is redirected to https
             - "traefik.http.routers.lapras_web.rule=Host(`files.zuh0.com`)"
             - "traefik.http.routers.lapras_web.entrypoints=web"
@@ -110,6 +120,7 @@ services:
             - "traefik.http.routers.lapras.entrypoints=websecure"
             - "traefik.http.routers.lapras.tls=true"
             - "traefik.http.routers.lapras.tls.certresolver=mytlschallenge"
+            - "traefik.http.routers.lapras.middlewares=lapras-auth"
 
 networks:
     hoenn:

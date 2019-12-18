@@ -1,33 +1,97 @@
+# This is the docker-compose.yml file for our whole infrastructure
 version: '3'
 
 services:
 
-  ditto:
-    image: jwilder/nginx-proxy:alpine
-    container_name: ditto
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - /etc/sysadmin/certs:/etc/nginx/certs:ro
+    # This is our Traefik reverse-proxy
+    ditto:
+        image: traefik
+        container_name: ditto
+        command:
+            # Dashboard stuff
+            - "--api.insecure=true"
 
-  gengar:
-    image: zuh0/gengar
-    container_name: gengar
-    volumes:
-      - /etc/sysadmin/certs:/certs:ro
-    environment:
-      - VIRTUAL_HOST=git.zuh0.com
-      - VIRTUAL_PROTO=https
-      - VIRTUAL_PORT=443
+            # Enable Docker discovery
+            - "--providers.docker=true"
+            - "--providers.docker.exposedbydefault=false"
+            - "--entrypoints.websecure.address=:443"
+            - "--entrypoints.web.address=:80"
 
-  lapras:
-    image: zuh0/lapras
-    container_name: lapras
-    volumes:
-      - /etc/sysadmin/certs:/certs:ro
-    environment:
-      - VIRTUAL_HOST=files.zuh0.com
-      - VIRTUAL_PROTO=https
-      - VIRTUAL_PORT=443
+            # Our certificate resolvers (let's encrypt acme API)
+            - "--certificatesresolvers.mytlschallenge.acme.tlschallenge=true"
+            - "--certificatesresolvers.mytlschallenge.acme.email=gabriel.duque@lse.epita.fr"
+            - "--certificatesresolvers.mytlschallenge.acme.storage=/letsencrypt/acme.json"
+
+        # Expose ports for endpoints
+        ports:
+            - "80:80"
+            - "443:443"
+            - "8080:8080"
+
+        volumes:
+            # Needed for certificate handling
+            - "/letsencrypt:/letsencrypt"
+
+            # Needed for Docker container discovery
+            - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+        # This service depends on all the others
+        depends_on:
+            - gengar
+            - lapras
+
+        labels:
+            # Traefik service is handled by Traefik ¯\_(ツ)_/¯
+            - "traefik.enable=true"
+
+            # Create a middle ware to redirect http -> https
+            - "traefik.http.middlewares.http2https.redirectscheme.scheme=https"
+
+            # Setup http router which is redirected to https
+            - "traefik.http.routers.ditto_web.rule=Host(`traefik.zuh0.com`)"
+            - "traefik.http.routers.ditto_web.entrypoints=web"
+            - "traefik.http.routers.ditto_web.middlewares=http2https"
+
+            # Setup the actual https router and it's certresolver
+            - "traefik.http.routers.ditto.rule=Host(`traefik.zuh0.com`)"
+            - "traefik.http.routers.ditto.entrypoints=websecure"
+            - "traefik.http.routers.ditto.tls=true"
+            - "traefik.http.routers.ditto.tls.certresolver=mytlschallenge"
+
+    # This is our git server
+    gengar:
+        image: zuh0/gengar
+        container_name: gengar
+        labels:
+            # Enable Traefik for this service
+            - "traefik.enable=true"
+
+            # Setup http router which is redirected to https
+            - "traefik.http.routers.gengar_web.rule=Host(`git.zuh0.com`)"
+            - "traefik.http.routers.gengar_web.entrypoints=web"
+            - "traefik.http.routers.gengar_web.middlewares=http2https"
+
+            # Setup the actual https router and it's certresolver
+            - "traefik.http.routers.gengar.rule=Host(`git.zuh0.com`)"
+            - "traefik.http.routers.gengar.entrypoints=websecure"
+            - "traefik.http.routers.gengar.tls=true"
+            - "traefik.http.routers.gengar.tls.certresolver=mytlschallenge"
+
+    # This is our file sharing service
+    lapras:
+        image: zuh0/lapras
+        container_name: lapras
+        labels:
+            # Enable Traefik for this service
+            - "traefik.enable=true"
+
+            # Setup http router which is redirected to https
+            - "traefik.http.routers.lapras_web.rule=Host(`files.zuh0.com`)"
+            - "traefik.http.routers.lapras_web.entrypoints=web"
+            - "traefik.http.routers.lapras_web.middlewares=http2https"
+
+            # Setup the actual https router and it's certresolver
+            - "traefik.http.routers.lapras.rule=Host(`files.zuh0.com`)"
+            - "traefik.http.routers.lapras.entrypoints=websecure"
+            - "traefik.http.routers.lapras.tls=true"
+            - "traefik.http.routers.lapras.tls.certresolver=mytlschallenge"

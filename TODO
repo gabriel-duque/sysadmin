@@ -2,4 +2,16 @@
 | sysadmin: my personal system administration repository |
 ==========================================================
 
-[ ] setup persistency for gengar's git repos
+[x] dragonite: personal NixOS configurations
+[x] lapras: file sharing service
+[x] gengar: git server
+[x] ditto: Traefik proxy
+[x] add authentication to lapras
+[x] add authentication and ssl to ditto
+[ ] persistency for gengar's git repos
+[ ] wireguard service
+[ ] seedbox
+[ ] paste service
+[ ] pokemon showdown with bot
+[ ] url shortner
+[ ] irc bouncer

@@ -67,6 +67,8 @@ services:
     gengar:
         image: zuh0/gengar
         container_name: gengar
+        ports:
+            - "22:22"
         networks:
             hoenn:
                 aliases:

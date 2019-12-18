@@ -22,7 +22,6 @@ COPY gengar.sh gengar.sh
 COPY git-shell-commands "/srv/git/git-shell-commands"
 
 EXPOSE 80/tcp
-EXPOSE 443/tcp
-EXPOSE 2200/tcp
+EXPOSE 22/tcp
 
 CMD ["sh", "gengar.sh"]

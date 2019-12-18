@@ -1,5 +1,5 @@
 # This is the docker-compose.yml file for our whole infrastructure
-version: '3'
+version: "3.5"
 
 services:
 
@@ -40,6 +40,11 @@ services:
             - gengar
             - lapras
 
+        networks:
+            hoenn:
+                aliases:
+                    - "ditto"
+
         labels:
             # Traefik service is handled by Traefik ¯\_(ツ)_/¯
             - "traefik.enable=true"
@@ -47,21 +52,25 @@ services:
             # Create a middle ware to redirect http -> https
             - "traefik.http.middlewares.http2https.redirectscheme.scheme=https"
 
-            # Setup http router which is redirected to https
-            - "traefik.http.routers.ditto_web.rule=Host(`traefik.zuh0.com`)"
-            - "traefik.http.routers.ditto_web.entrypoints=web"
-            - "traefik.http.routers.ditto_web.middlewares=http2https"
+            ## Setup http router which is redirected to https
+            #- "traefik.http.routers.ditto_web.rule=Host(`traefik.zuh0.com`)"
+            #- "traefik.http.routers.ditto_web.entrypoints=web"
+            #- "traefik.http.routers.ditto_web.middlewares=http2https"
 
-            # Setup the actual https router and it's certresolver
-            - "traefik.http.routers.ditto.rule=Host(`traefik.zuh0.com`)"
-            - "traefik.http.routers.ditto.entrypoints=websecure"
-            - "traefik.http.routers.ditto.tls=true"
-            - "traefik.http.routers.ditto.tls.certresolver=mytlschallenge"
+            ## Setup the actual https router and it's certresolver
+            #- "traefik.http.routers.ditto.rule=Host(`traefik.zuh0.com`)"
+            #- "traefik.http.routers.ditto.entrypoints=websecure"
+            #- "traefik.http.routers.ditto.tls=true"
+            #- "traefik.http.routers.ditto.tls.certresolver=mytlschallenge"
 
     # This is our git server
     gengar:
         image: zuh0/gengar
         container_name: gengar
+        networks:
+            hoenn:
+                aliases:
+                    - "gengar"
         labels:
             # Enable Traefik for this service
             - "traefik.enable=true"
@@ -81,6 +90,10 @@ services:
     lapras:
         image: zuh0/lapras
         container_name: lapras
+        networks:
+            hoenn:
+                aliases:
+                    - "lapras"
         labels:
             # Enable Traefik for this service
             - "traefik.enable=true"
@@ -95,3 +108,7 @@ services:
             - "traefik.http.routers.lapras.entrypoints=websecure"
             - "traefik.http.routers.lapras.tls=true"
             - "traefik.http.routers.lapras.tls.certresolver=mytlschallenge"
+
+networks:
+    hoenn:
+        name: "hoenn"

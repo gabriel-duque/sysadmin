@@ -1,6 +1,6 @@
 # Set logo and style sheet
-css=cgit.css
-logo=cgit.png
+css=/cgit.css
+logo=/cgit.png
 
 # Allow http clone
 enable-http-clone=1

@@ -26,7 +26,6 @@ services:
         ports:
             - "80:80"
             - "443:443"
-            - "8080:8080"
 
         volumes:
             # Needed for certificate handling
@@ -51,6 +50,7 @@ services:
 
             # Create a middle ware to redirect http -> https
             - "traefik.http.middlewares.http2https.redirectscheme.scheme=https"
+            - "traefik.http.middlewares.http2https.redirectscheme.port=443"
 
             # Authentication middleware for ditto
             - "traefik.http.middlewares.ditto-auth.basicauth.users=${TRAEFIK_USER?please set TRAEFIK_USER}:${TRAEFIK_PASS?please set TRAEFIK_PASS}"
@@ -72,14 +72,16 @@ services:
 
     # This is our git server
     gengar:
-        image: zuh0/gengar
+        image: zuh0/gengar:latest
         container_name: gengar
-        ports:
-            - "22:22"
         networks:
             hoenn:
                 aliases:
                     - "gengar"
+        ports:
+            - "22:22"
+        volumes:
+            - "gengar-repos:/srv/git:rw"
         labels:
             # Enable Traefik for this service
             - "traefik.enable=true"
@@ -95,9 +97,11 @@ services:
             - "traefik.http.routers.gengar.tls=true"
             - "traefik.http.routers.gengar.tls.certresolver=mytlschallenge"
 
+            - "traefik.http.services.gengar.loadbalancer.server.port=80"
+
     # This is our file sharing service
     lapras:
-        image: zuh0/lapras
+        image: zuh0/lapras:latest
         container_name: lapras
         networks:
             hoenn:
@@ -121,6 +125,10 @@ services:
             - "traefik.http.routers.lapras.tls=true"
             - "traefik.http.routers.lapras.tls.certresolver=mytlschallenge"
             - "traefik.http.routers.lapras.middlewares=lapras-auth"
+
+volumes:
+    gengar-repos:
+        name: "gengar-repos"
 
 networks:
     hoenn:

@@ -2,7 +2,7 @@
 | sysadmin: my personal system administration repository |
 ==========================================================
 
-[x] dragonite: personal NixOS configurations
+[x] slowpoke: personal NixOS configurations
 [x] lapras: file sharing service
 [x] gengar: git server
 [x] ditto: Traefik proxy

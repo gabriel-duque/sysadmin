@@ -147,7 +147,7 @@ parse_args() {
     esp="${disk}1"
     esp_size="${esp_size:-1GiB}"
     crypt_part="${disk}2"
-    hostname="${hostname:-dragonite}"
+    hostname="${hostname:-slowpoke}"
     crypt_dm="${crypt_dm:-crypt${hostname}}"
     vg_name="${vg_name:-${hostname}}"
 }

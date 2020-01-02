@@ -107,6 +107,9 @@ services:
             hoenn:
                 aliases:
                     - "lapras"
+        volumes:
+            lapras-objects:
+                name: "lapras-objects"
         labels:
             # Enable Traefik for this service
             - "traefik.enable=true"
@@ -129,6 +132,8 @@ services:
 volumes:
     gengar-repos:
         name: "gengar-repos"
+    lapras-objects:
+        name: "lapras-objects"
 
 networks:
     hoenn:

@@ -3,7 +3,7 @@ FROM dutchcoders/transfer.sh:latest
 ENTRYPOINT [ "/go/bin/transfersh",                             \
              "--listener", ":80",                              \
              "--provider", "local",                            \
-             "--basedir", "/tmp",                              \
+             "--basedir", "/objects",                              \
              "--log", "/lapras.log"                            \
 ]
 

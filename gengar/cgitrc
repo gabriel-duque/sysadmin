@@ -2,17 +2,16 @@
 css=/cgit.css
 logo=/cgit.png
 
+# Handle repo owners in gitweb style
+enable-git-config=1
+
 # Allow http clone
 enable-http-clone=1
 
+# Clone URLs
+
 # To fix some broken links
 virtual-root=/
-
-# The list of public repositories
-project-list=/srv/git/projects.list
-
-# Set directory to scan for repositories to show
-scan-path=/srv/git
 
 # Enable some expensive features
 enable-commit-graph=1
@@ -22,3 +21,55 @@ snapshots=all
 
 # Remove .git suffix
 remove-suffix=1
+
+# Show extra links for each repository on the index page
+enable-index-links=1
+
+# List of common mimetypes
+
+mimetype.gif=image/gif
+mimetype.html=text/html
+mimetype.jpg=image/jpeg
+mimetype.jpeg=image/jpeg
+mimetype.pdf=application/pdf
+mimetype.png=image/png
+mimetype.svg=image/svg+xml
+
+# Search for these files in the root of the default branch of repositories
+# for coming up with the about page:
+
+readme=:README.md
+readme=:readme.md
+readme=:README.mkd
+readme=:readme.mkd
+readme=:README.rst
+readme=:readme.rst
+readme=:README.html
+readme=:readme.html
+readme=:README.htm
+readme=:readme.htm
+readme=:README.txt
+readme=:readme.txt
+readme=:README
+readme=:readme
+readme=:INSTALL.md
+readme=:install.md
+readme=:INSTALL.mkd
+readme=:install.mkd
+readme=:INSTALL.rst
+readme=:install.rst
+readme=:INSTALL.html
+readme=:install.html
+readme=:INSTALL.htm
+readme=:install.htm
+readme=:INSTALL.txt
+readme=:install.txt
+readme=:INSTALL
+readme=:install
+
+# The list of public repositories
+project-list=/srv/git/projects.list
+
+# Set directory to scan for repositories to show
+scan-path=/srv/git
+
